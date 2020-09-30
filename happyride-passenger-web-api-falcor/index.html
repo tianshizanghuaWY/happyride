@@ -1,0 +1,89 @@
+<html>
+  <head>
+    <title>Falcor Test Page</title>
+    <link
+      rel="stylesheet"
+      href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css"
+      integrity="sha384-9aIt2nRpC12Uk9gS9baDl411NQApFmC26EwAOH8WgZl5MYYxFfc+NcPb1dKGj7Sk"
+      crossorigin="anonymous"
+    />
+    <style>
+      #response {
+        height: 300px;
+      }
+    </style>
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <script src="//netflix.github.io/falcor/build/falcor.browser.js"></script>
+    <script>
+      var model = new falcor.Model({
+        source: new falcor.HttpDataSource("/model.json"),
+      });
+
+      function setResponse(data) {
+        $("#response").text(data);
+      }
+
+      function successCallback(response) {
+        setResponse(JSON.stringify(response, null, 4));
+      }
+
+      function errorCallback(error) {
+        setResponse(error.message);
+      }
+
+      function get() {
+        $("#response").val("");
+        model.get($("#path").val()).then(successCallback).catch(errorCallback);
+      }
+
+      function addAddress() {
+        $("#response").val("");
+        const passengerId = $("#passengerId").val();
+        model
+          .call(
+            ["passengersById", "addUserAddress"],
+            [passengerId, $("#addressName").val(), $("#addressId").val()],
+            [],
+            [[passengerId, "userAddresses"]]
+          )
+          .then(successCallback)
+          .catch(errorCallback);
+      }
+    </script>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Falcor Test</h1>
+      <h4>Get path</h4>
+      <div class="form-group">
+        <label for="path">Path</label>
+        <input id="path" class="form-control" />
+        <button onclick="get()" class="btn btn-primary mt-2">Get path</button>
+      </div>
+      <hr />
+      <h4>Call function</h4>
+      <div class="form-group">
+        <label for="passengerId">Passenger Id</label>
+        <input type="text" class="form-control" id="passengerId" />
+      </div>
+      <div class="form-group">
+        <label for="addressName">Address Name</label>
+        <input type="text" class="form-control" id="addressName" />
+        <div class="form-group">
+          <label for="addressId">Address Id</label>
+          <input type="text" class="form-control" id="addressId" />
+        </div>
+      </div>
+      <div class="form-group">
+        <button onclick="addAddress()" class="btn btn-secondary">
+          Add Address
+        </button>
+      </div>
+      <hr />
+      <h4>Response</h4>
+      <div class="form-group">
+        <pre id="response" class="form-control"></pre>
+      </div>
+    </div>
+  </body>
+</html>

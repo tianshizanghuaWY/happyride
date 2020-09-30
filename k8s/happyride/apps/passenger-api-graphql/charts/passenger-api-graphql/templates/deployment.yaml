@@ -1,0 +1,92 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "passenger-api-graphql.fullname" . }}
+  labels:
+    {{- include "passenger-api-graphql.labels" . | nindent 4 }}
+spec:
+{{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+{{- end }}
+  selector:
+    matchLabels:
+      {{- include "passenger-api-graphql.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+    {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+      labels:
+        {{- include "passenger-api-graphql.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "passenger-api-graphql.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          env:
+            - name: DESTINATION_PASSENGER
+              value: http://passenger-service
+            - name: DESTINATION_ADDRESS
+              value: http://address-service
+            - name: JAEGER_SERVICE_NAME
+              value: passenger-api-graphql
+            - name: JAEGER_AGENT_HOST
+              value: jaeger-agent.istio-system.svc.cluster.local
+            - name: JAEGER_AGENT_PORT
+              value: "6831"  
+            - name: JAEGER_SAMPLER_TYPE
+              value: const   
+            - name: JAEGER_SAMPLER_PARAM
+              value: "1"
+            - name: JAEGER_PROPAGATION
+              value: "b3"              
+            - name: SPRING_CONFIG_LOCATION
+              value: classpath:/application.yml,/etc/config/*/
+          volumeMounts:
+            - name: config-volume
+              mountPath: /etc/config    
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: http
+            failureThreshold: 10
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: http
+            failureThreshold: 10
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      volumes:
+        - name: config-volume
+          configMap:
+            name: common-spring-config
+            items:
+              - key: management.yml
+                path: management/application.yml
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

@@ -1,0 +1,23 @@
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: virtual-service
+spec:
+  hosts:
+    - virtual-service
+  http:
+    - name: "virtual-service-http"
+      match:
+        - uri:
+            prefix: "/test"
+          headers:
+            x-myheader:
+              exact: "hello"
+        - uri:
+            exact: "/demo"
+          queryParams:
+            from:
+              prefix: "myserver"        
+      route:
+        - destination:
+            host: test-service
